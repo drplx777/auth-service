@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Собираем приложение, указывая путь к main-файлу
-RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-service ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-service ./cmd/server/main.go
 
 # Stage 2: Create the final image
 FROM alpine:latest
