@@ -11,11 +11,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Копируем исходный код
+# Копируем ВСЕ исходные файлы
 COPY . .
 
-# Собираем приложение
-RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-service
+# Собираем приложение, указывая путь к main-файлу
+RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-service ./cmd/main.go
 
 # Stage 2: Create the final image
 FROM alpine:latest
