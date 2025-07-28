@@ -1,1 +1,48 @@
 package main
+
+import (
+	handler "auth-service/internal/handlers"
+	"log"
+	"log/slog"
+	"os"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+)
+
+func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+
+	// Проверка обязательных переменных окружения
+	if os.Getenv("JWT_SECRET") == "" {
+		logger.Error("JWT_SECRET environment variable is required")
+		os.Exit(1)
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "5000"
+	}
+
+	app := fiber.New()
+
+	// Настройка CORS
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"https://my-samovar-to-do-list.duckdns.org/", "http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowCredentials: true,
+		ExposeHeaders:    []string{"Authorization"},
+	}))
+
+	// Регистрация роутов
+	handler.RegisterAuthRoutes(app)
+
+	logger.Info("Starting auth-service", "port", port)
+	if err := app.Listen(":" + port); err != nil {
+		log.Fatalf("Failed to start auth-service: %v", err)
+	}
+}
