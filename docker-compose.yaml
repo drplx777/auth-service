@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  db-service:
+    build: ./db-service
+    env_file:
+      - ./db-service/.env
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+
+  auth-service:
+    build: ./auth-service
+    env_file:
+      - ./auth-service/.env  # Создайте этот файл с переменными окружения
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db-service
+    networks:
+      - backend
+
+  api-service:
+    build: ./api-service
+    env_file:
+      - ./api-service/.env
+    depends_on:
+      - db-service
+      - auth-service
+    ports:
+      - "3000:3000"
+    networks:
+      - backend
+
+networks:
+  backend:
