@@ -1,7 +1,10 @@
-package handler
+package handlers
 
 import (
+	"auth-service/internal/api_clients"
 	"auth-service/internal/client"
+	"auth-service/internal/dtos"
+	"auth-service/internal/services"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -13,69 +16,39 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type RegisterRequest struct {
-	Name       string `json:"name"`
-	Surname    string `json:"surname"`
-	Middlename string `json:"middlename,omitempty"`
-	Login      string `json:"login"`
-	RoleID     int    `json:"roleID"`
-	Password   string `json:"password"`
+type handlers struct {
+	cfg             *dtos.Config
+	dbServiceClient *api_clients.DbServiceClient
 }
 
-type LoginRequest struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
+func Register(app *fiber.App) {
+	h := &handlers{
+		cfg:             services.NewConfig(),
+		dbServiceClient: api_clients.NewDbServiceClient(),
+	}
+
+	app.Post("/register", h.registerHandler)
+	app.Post("/login", h.loginHandler)
+	app.Get("/validate", h.validateTokenHandler)
 }
 
-type UserResponse struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	Surname    string `json:"surname"`
-	Middlename string `json:"middlename,omitempty"`
-	Login      string `json:"login"`
-	RoleID     int    `json:"roleID"`
-}
-
-func RegisterAuthRoutes(app *fiber.App) {
-	app.Post("/register", registerHandler)
-	app.Post("/login", loginHandler)
-	app.Get("/validate", validateTokenHandler)
-}
-
-func registerHandler(c fiber.Ctx) error {
-	var req RegisterRequest
+func (h *handlers) registerHandler(c fiber.Ctx) error {
+	var req dtos.RegisterRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	// Отправляем запрос в db-service
-	resp, err := client.Post("/user/register", req)
+	registeredUser, err := h.dbServiceClient.RegisterUser(&req)
 	if err != nil {
-		slog.Error("Failed to connect to db-service", "error", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Service unavailable"})
-	}
-	defer resp.Body.Close()
-
-	// Если db-service вернул ошибку, передаем ее клиенту
-	if resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
-		return c.Status(resp.StatusCode).Send(body)
-	}
-
-	// Парсим ответ от db-service
-	var userID struct {
-		ID int `json:"id"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&userID); err != nil {
-		slog.Error("Failed to parse response", "error", err)
+		slog.Error("Failed to register user", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(userID)
+	return c.Status(fiber.StatusCreated).JSON(registeredUser)
 }
 
-func loginHandler(c fiber.Ctx) error {
-	var req LoginRequest
+func (h *handlers) loginHandler(c fiber.Ctx) error {
+	var req dtos.LoginRequest
 	if err := c.Bind().JSON(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
@@ -86,14 +59,14 @@ func loginHandler(c fiber.Ctx) error {
 		slog.Error("Failed to connect to db-service", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Service unavailable"})
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return c.Status(resp.StatusCode).Send(body)
 	}
 
-	var user UserResponse
+	var user dtos.UserResponse
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 		slog.Error("Failed to parse user data", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
@@ -118,7 +91,7 @@ func loginHandler(c fiber.Ctx) error {
 	})
 }
 
-func validateTokenHandler(c fiber.Ctx) error {
+func (h *handlers) validateTokenHandler(c fiber.Ctx) error {
 	tokenString := c.Query("token")
 	if tokenString == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Token is required"})
