@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-	// Проверка обязательных переменных окружения
 	if os.Getenv("JWT_SECRET") == "" {
 		slog.Error("JWT_SECRET environment variable is required")
 		os.Exit(1)
@@ -24,7 +23,6 @@ func main() {
 
 	app := fiber.New()
 
-	// Настройка CORS
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"https://my-samovar-to-do-list.duckdns.org/", "http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -33,7 +31,6 @@ func main() {
 		ExposeHeaders:    []string{"Authorization"},
 	}))
 
-	// Регистрация роутов
 	handler.RegisterAuthRoutes(app)
 
 	slog.Info("Starting auth-service", "port", port)
