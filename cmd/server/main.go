@@ -11,14 +11,9 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
-
 	// Проверка обязательных переменных окружения
 	if os.Getenv("JWT_SECRET") == "" {
-		logger.Error("JWT_SECRET environment variable is required")
+		slog.Error("JWT_SECRET environment variable is required")
 		os.Exit(1)
 	}
 
@@ -41,7 +36,7 @@ func main() {
 	// Регистрация роутов
 	handler.RegisterAuthRoutes(app)
 
-	logger.Info("Starting auth-service", "port", port)
+	slog.Info("Starting auth-service", "port", port)
 	if err := app.Listen(":" + port); err != nil {
 		log.Fatalf("Failed to start auth-service: %v", err)
 	}
