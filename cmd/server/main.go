@@ -1,7 +1,7 @@
 package main
 
 import (
-	handler "auth-service/internal/handlers"
+	"auth-service/internal/handlers"
 	"log"
 	"log/slog"
 	"os"
@@ -11,11 +11,6 @@ import (
 )
 
 func main() {
-	if os.Getenv("JWT_SECRET") == "" {
-		slog.Error("JWT_SECRET environment variable is required")
-		os.Exit(1)
-	}
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
@@ -31,7 +26,7 @@ func main() {
 		ExposeHeaders:    []string{"Authorization"},
 	}))
 
-	handler.RegisterAuthRoutes(app)
+	handlers.Register(app)
 
 	slog.Info("Starting auth-service", "port", port)
 	if err := app.Listen(":" + port); err != nil {
