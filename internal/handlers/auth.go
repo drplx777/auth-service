@@ -30,6 +30,9 @@ func Register(app *fiber.App) {
 	app.Post("/register", h.registerHandler)
 	app.Post("/login", h.loginHandler)
 	app.Get("/validate", h.validateTokenHandler)
+	app.Get("/health", func(c fiber.Ctx) error {
+		return c.SendString("OK")
+	})
 }
 
 func (h *handlers) registerHandler(c fiber.Ctx) error {
