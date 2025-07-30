@@ -30,6 +30,7 @@ func Register(app *fiber.App) {
 	app.Post("/register", h.registerHandler)
 	app.Post("/login", h.loginHandler)
 	app.Get("/validate", h.validateTokenHandler)
+	app.Get("/userbyJWT", h.GetUserByJWT)
 	app.Get("/health", func(c fiber.Ctx) error {
 		return c.SendString("OK")
 	})
@@ -120,5 +121,20 @@ func (h *handlers) validateTokenHandler(c fiber.Ctx) error {
 		"valid":    true,
 		"userID":   claims["sub"],
 		"userRole": claims["role"],
+	})
+}
+func (h *handlers) GetUserByJWT(c fiber.Ctx) error {
+	userID, ok1 := c.Locals("userID").(int)
+	userRole, ok2 := c.Locals("userRole").(int)
+
+	if !ok1 || !ok2 {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to retrieve user data from context",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"userID":   userID,
+		"userRole": userRole,
 	})
 }
