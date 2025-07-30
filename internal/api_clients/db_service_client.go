@@ -4,10 +4,11 @@ import (
 	"auth-service/internal/dtos"
 	"bytes"
 	"encoding/json"
-	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 type DbServiceClient struct {
